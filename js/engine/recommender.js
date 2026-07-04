@@ -19,7 +19,7 @@ const RecommendRuleConfig = {
     {
       id: 'lighting',
       name: '灯光氛围包',
-      description: '一键开关全屋灯光，定时控制',
+      description: '筒射灯+灯带组合消除暗区，色温亮度分段调节，一键切换阅读/观影/夜间模式',
       weight: 80,
       basePriority: 'recommended',
       boost: { scenarios: { home: 30, comfort: 20 }, members: { self: 10 } },
@@ -46,7 +46,7 @@ const RecommendRuleConfig = {
     {
       id: 'sensor',
       name: '感应自动化包',
-      description: '人来灯亮，人走灯灭',
+      description: '人来灯亮人走灯灭，毫米波人在传感器精准检测，卫生间走廊自动感应',
       weight: 60,
       basePriority: 'recommended',
       boost: { scenarios: { home: 25, comfort: 15 }, members: { elderly: 10, self: 10 } },
@@ -86,7 +86,7 @@ const RecommendRuleConfig = {
     gateway: ['zigbee', 'wifi', 'bluetooth'],
     light: ['e27', 'gu10', 'strip', 'panel', 'bedside'],
     switch: ['single', 'dual', 'scene', 'wireless'],
-    sensor: ['body', 'door', 'smoke', 'gas', 'water'],
+    sensor: ['body', 'door', 'smoke', 'gas', 'water', 'presence'],
     lock: ['fingerprint', 'face', 'password'],
     camera: ['indoor', 'outdoor', 'doorbell'],
     climate: ['ac', 'purifier', 'heater', 'dehumidifier'],
@@ -110,6 +110,7 @@ const ProductCategoryMap = {
   sensor_smoke: '传感器',
   sensor_gas: '传感器',
   sensor_water: '传感器',
+  sensor_presence: '传感器',
   lock: '门锁',
   camera: '摄像头',
   camera_outdoor: '摄像头',
@@ -178,7 +179,8 @@ class Recommender {
       totalCost: 0,
       platforms: [platform],
       painPoints: painPoints,
-      rooms: rooms || null
+      rooms: rooms || null,
+      userAnswers: userAnswers
     };
 
     // 计算场景包权重
@@ -351,7 +353,8 @@ class Recommender {
       camera: 'camera',
       sensor_door: 'sensor',
       sensor_body: 'sensor',
-      sensor_smoke: 'sensor'
+      sensor_smoke: 'sensor',
+      sensor_presence: 'sensor'
     };
 
     /**

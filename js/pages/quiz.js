@@ -7,32 +7,15 @@ const QuizPage = {
 
   questions: [
     {
-      id: 'platform',
-      title: '你使用的智能平台是？',
-      subtitle: '选择你偏好或已在用的智能家居平台',
-      type: 'single',
-      options: [
-        { value: 'mijia', label: '米家', icon: 'mijia', desc: '小米生态，产品丰富性价比高' },
-        { value: 'apple', label: '苹果HomeKit', icon: 'apple', desc: '隐私优先，与iPhone深度整合' },
-        { value: 'huawei', label: '华为HiLink', icon: 'huawei', desc: '华为生态，稳定可靠' }
-      ]
-    },
-    {
       id: 'houseType',
       title: '你的住房情况？',
-      subtitle: '不同情况影响安装方案',
-      type: 'single',
+      subtitle: '不同情况影响安装方案，帮助我们计算设备数量和摆放位置',
+      type: 'house-and-rooms',
       options: [
         { value: 'new', label: '毛坯装修', icon: 'new', desc: '新装修可预埋，美观一体' },
-        { value: 'renovate', label: '改造', icon: 'renovate', desc: '局部改造，尽量不破坏现有装修' },
+        { value: 'renovate', label: '改造', icon: 'renovate', desc: '不破坏装修，利用现有家电、灯具、硬装' },
         { value: 'rent', label: '租房', icon: 'rent', desc: '优先免安装、可带走的方案' }
-      ]
-    },
-    {
-      id: 'rooms',
-      title: '你的房间结构是？',
-      subtitle: '帮助我们计算设备数量和摆放位置',
-      type: 'rooms',
+      ],
       roomConfig: [
         { key: 'bedrooms', label: '卧室', min: 1, max: 5, default: 3 },
         { key: 'livingRooms', label: '客厅', min: 1, max: 2, default: 1 }
@@ -97,8 +80,19 @@ const QuizPage = {
           ]
         }
       ],
-      standaloneOptions: [
-        { value: 'curious', label: '只是好奇想了解', icon: 'solo', desc: '先了解再决定' }
+      standaloneOptions: []
+    },
+    {
+      id: 'platform',
+      title: '你偏好的智能平台是？',
+      subtitle: '选择你偏好或已在用的智能家居平台',
+      type: 'single',
+      hasDetail: true,
+      options: [
+        { value: 'mijia', label: '米家', icon: 'mijia', desc: '小米生态，产品丰富性价比高' },
+        { value: 'apple', label: '苹果HomeKit', icon: 'apple', desc: '隐私优先，与iPhone深度整合' },
+        { value: 'huawei', label: '华为HiLink', icon: 'huawei', desc: '华为生态，稳定可靠' },
+        { value: 'unknown', label: '不太了解，先看看', icon: 'unknown', desc: '先看方案再决定平台' }
       ]
     }
   ],
@@ -128,8 +122,8 @@ const QuizPage = {
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
               12,000+ 家庭已获取专属方案
             </div>
-            <h1 class="brand-name"><span class="brand-name-highlight">智家</span><span class="brand-name-normal">清单</span></h1>
-            <p class="brand-slogan">5道题，找到你的智能家居方案</p>
+            <h1 class="brand-name" style="font-family: Impact, 'Arial Black', sans-serif; font-weight: 900; letter-spacing: 2px;"><span class="brand-name-highlight">智家</span><span class="brand-name-normal">清单</span></h1>
+            <p class="brand-slogan">4道题，找到你的智能家居方案</p>
             <p class="brand-desc">拒绝盲目全屋定制，帮你找到真正适合的升级路径</p>
             ${quizCompleted ? `
               <div style="display:flex; gap:12px;">
@@ -175,7 +169,7 @@ const QuizPage = {
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </div>
               <h3>精准匹配</h3>
-              <p>5道问卷覆盖居住场景，AI规则引擎科学推荐</p>
+              <p>4道问卷覆盖居住场景，AI规则引擎科学推荐</p>
             </div>
             <div class="feature-card" onclick="router.navigate('recommend')">
               <div class="feature-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
@@ -184,7 +178,7 @@ const QuizPage = {
               <h3>场景方案</h3>
               <p>网关/灯光/窗帘/安防/宠物等场景包，按需组合</p>
             </div>
-            <div class="feature-card" onclick="QuizPage.startQuiz()">
+            <div class="feature-card" onclick="window.open('智家清单方案介绍.html','_blank')">
               <div class="feature-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="white" stroke-width="2"><path d="M12 9v4"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
@@ -210,7 +204,7 @@ const QuizPage = {
       <div class="page quiz-page">
         <div class="quiz-header">
           <h1>智能测评</h1>
-          <p>回答5个问题，获取专属方案</p>
+          <p>回答4个问题，获取专属方案</p>
           <div class="progress-bar">
             <div class="progress-fill" style="width: ${100 / this.questions.length}%"></div>
           </div>
@@ -240,7 +234,48 @@ const QuizPage = {
     const savedAnswer = this.answers[q.id];
 
     let optionsHtml = '';
-    if (q.type === 'rooms') {
+    if (q.type === 'house-and-rooms') {
+      const houseAnswer = savedAnswer || null;
+      const rooms = (savedAnswer && savedAnswer.rooms) ? savedAnswer.rooms : { bedrooms: 3, livingRooms: 1 };
+      optionsHtml = `
+        <div class="quiz-options">
+          ${q.options.map(opt => `
+            <div class="quiz-option ${houseAnswer === opt.value ? 'selected' : ''}"
+                 data-value="${opt.value}"
+                 onclick="QuizPage.selectHouseAndRooms('${q.id}', '${opt.value}', this)">
+              <div class="option-icon">
+                ${this._getOptionIcon(opt.icon)}
+              </div>
+              <div class="option-text">
+                <span class="option-label">${opt.label}</span>
+                <span class="option-desc">${opt.desc}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border,#333);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:15px;font-weight:600;color:var(--text-primary,#fff);">房间结构</span>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;height:auto;display:flex;align-items:center;gap:4px;border-radius:8px;" onclick="QuizPage.showUploadFloorplan()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              上传户型图自动识别
+            </button>
+          </div>
+          <div class="room-config-grid">
+            ${q.roomConfig.map(cfg => `
+              <div class="room-config-item">
+                <div class="room-config-label">${cfg.label}</div>
+                <div class="room-config-stepper">
+                  <button class="qty-btn" onclick="QuizPage.changeRoom('${cfg.key}', -1, ${cfg.min}, ${cfg.max})">-</button>
+                  <span class="qty-value" id="room-${cfg.key}">${rooms[cfg.key] !== undefined ? rooms[cfg.key] : cfg.default}</span>
+                  <button class="qty-btn" onclick="QuizPage.changeRoom('${cfg.key}', 1, ${cfg.min}, ${cfg.max})">+</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (q.type === 'rooms') {
       const rooms = savedAnswer || { bedrooms: 3, livingRooms: 1 };
       optionsHtml = `
         <div class="room-config-grid">
@@ -292,8 +327,19 @@ const QuizPage = {
       <div class="quiz-step" style="animation: fadeIn 0.3s ease">
         <h2 class="quiz-question">${q.title}${multiTag}</h2>
         <p class="quiz-subtitle">${q.subtitle}</p>
+        ${q.hasDetail ? `
+          <div style="text-align:right;margin-bottom:12px;">
+            <button class="btn btn-text" style="font-size:12px;padding:4px 8px;height:auto;color:var(--primary);display:inline-flex;align-items:center;gap:4px;" onclick="QuizPage.togglePlatformDetail()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              平台对比详情
+            </button>
+          </div>
+          <div id="platform-detail-panel" style="display:none;margin-bottom:16px;background:var(--bg-card,#111);border:1px solid var(--border,#333);border-radius:12px;padding:14px;overflow-x:auto;">
+            ${this._renderPlatformComparisonTable()}
+          </div>
+        ` : ''}
         ${optionsHtml}
-        ${q.type === 'multi' || q.type === 'rooms' || q.type === 'grouped-multi' ? `
+        ${q.type === 'multi' || q.type === 'rooms' || q.type === 'grouped-multi' || q.type === 'house-and-rooms' ? `
           <div class="quiz-nav">
             ${this.currentStep > 0 ? '<button class="btn btn-outline" onclick="QuizPage.prevStep()">上一步</button>' : ''}
             <button class="btn btn-primary" onclick="QuizPage.nextStep()">下一步</button>
@@ -323,7 +369,7 @@ const QuizPage = {
 
     // 渲染每个组
     q.groups.forEach(function(group) {
-      // 成员过滤：根据题4的成员选择来决定是否显示特定选项
+      // 成员过滤：根据题3的成员选择来决定是否显示特定选项
       var filteredOptions = group.options.filter(function(opt) {
         if (opt.value === 'elderly-safety' && !members.includes('elderly')) return false;
         if (opt.value === 'pet-monitor' && !members.includes('pet')) return false;
@@ -485,6 +531,99 @@ const QuizPage = {
     this.answers.painPoints = painPoints;
   },
 
+  togglePlatformDetail() {
+    const panel = document.getElementById('platform-detail-panel');
+    if (panel) {
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+  },
+
+  _renderPlatformComparisonTable() {
+    return `
+      <table style="width:100%;border-collapse:collapse;font-size:12px;line-height:1.6;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border,#333);">
+            <th style="text-align:left;padding:6px 8px;color:var(--text-secondary,#999);font-weight:500;">对比维度</th>
+            <th style="text-align:center;padding:6px 8px;color:#FF8C00;font-weight:600;">米家</th>
+            <th style="text-align:center;padding:6px 8px;color:#007AFF;font-weight:600;">HomeKit</th>
+            <th style="text-align:center;padding:6px 8px;color:#CF0A2C;font-weight:600;">华为HiLink</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border,#222);">
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">产品丰富度</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">2000+款</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">500+款</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">800+款</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border,#222);">
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">价格区间</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">¥29~几百</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">¥100~上千</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">¥50~几百</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border,#222);">
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">性价比</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">高</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">中</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">中高</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border,#222);">
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">语音控制</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">小爱同学</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">Siri</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">小艺</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border,#222);">
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">隐私安全</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">云端为主</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">本地优先</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">云端+本地</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border,#222);">
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">生态整合</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">小米全家桶</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">Apple全家桶</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">华为全家桶</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;color:var(--text-secondary,#999);">适合人群</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">入门首选</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">苹果用户</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">华为用户</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  },
+
+  selectHouseAndRooms(questionId, value, el) {
+    this.answers.houseType = value;
+    document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    // 不自动跳转，让用户也设置房间结构
+  },
+
+  showUploadFloorplan() {
+    const overlay = document.createElement('div');
+    overlay.id = 'floorplan-upload-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML = `
+      <div style="background:var(--bg2,#1a1a1a);border-radius:16px;padding:24px;max-width:320px;width:100%;border:1px solid var(--border,#333);">
+        <div style="text-align:center;margin-bottom:16px;">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--primary)" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <h3 style="margin:0 0 12px;color:var(--text-primary,#fff);font-size:18px;text-align:center;">上传户型图</h3>
+        <p style="margin:0 0 16px;color:var(--text-secondary,#999);font-size:14px;line-height:1.6;text-align:center;">本功能尚待开发。根据上传图纸，自动识别户型，并标注设备推荐安装位置。</p>
+        <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('floorplan-upload-overlay').remove()">知道了</button>
+      </div>
+    `;
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+  },
+
   changeRoom(key, delta, min, max) {
     if (!this.answers.rooms) {
       this.answers.rooms = { bedrooms: 3, livingRooms: 1 };
@@ -526,6 +665,16 @@ const QuizPage = {
       const q = this.questions[this.currentStep];
       if (q && q.id === 'rooms' && !this.answers.rooms) {
         this.answers.rooms = { bedrooms: 3, livingRooms: 1 };
+      }
+
+      // For house-and-rooms question, save houseType and rooms separately
+      if (q && q.type === 'house-and-rooms') {
+        if (!this.answers.rooms) this.answers.rooms = { bedrooms: 3, livingRooms: 1 };
+        // Read room values from DOM
+        q.roomConfig.forEach(cfg => {
+          const el = document.getElementById(`room-${cfg.key}`);
+          if (el) this.answers.rooms[cfg.key] = parseInt(el.textContent) || cfg.default;
+        });
       }
 
       // For grouped-multi question, collect answers from DOM
@@ -575,7 +724,7 @@ const QuizPage = {
       App.showToast('正在生成方案...');
 
       // Fill defaults for unanswered questions
-      if (!this.answers.platform) this.answers.platform = 'mijia';
+      if (!this.answers.platform || this.answers.platform === 'unknown') this.answers.platform = 'mijia';
       if (!this.answers.houseType) this.answers.houseType = 'new';
       if (!this.answers.rooms) this.answers.rooms = { bedrooms: 3, livingRooms: 1 };
       if (!this.answers.members || this.answers.members.length === 0) this.answers.members = ['self'];
@@ -621,7 +770,8 @@ const QuizPage = {
       light: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"/></svg>',
       chores: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>',
       vacuum: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/></svg>',
-      dishwasher: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/></svg>'
+      dishwasher: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/></svg>',
+      unknown: '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
     };
     return icons[icon] || '';
   }

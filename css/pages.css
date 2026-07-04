@@ -2461,6 +2461,28 @@
   }
 }
 
+/* ===== 平板和桌面适配 ===== */
+@media (min-width: 768px) {
+  body {
+    background: var(--bg-dark);
+  }
+
+  #app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  .tab-bar {
+    max-width: 430px;
+    justify-content: center;
+  }
+
+  .tab-item {
+    max-width: 100px;
+  }
+}
+
 @media (max-width: 375px) {
   .quiz-options {
     grid-template-columns: 1fr;

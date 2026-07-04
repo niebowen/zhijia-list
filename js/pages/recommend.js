@@ -18,6 +18,7 @@ const RecommendPage = {
     smart_panel: '智能面板',
     sensor_door: '门窗传感器',
     sensor_body: '人体传感器',
+    sensor_presence: '人在传感器',
     sensor_smoke: '烟雾报警器',
     sensor_temp: '温湿度传感器',
     sensor_gas: '天然气报警器',
@@ -77,7 +78,7 @@ const RecommendPage = {
       if (!this.data) return;
 
       const container = document.getElementById('page-content');
-      const userAnswers = store.getQuizResult() || {};
+      const userAnswers = store.getQuizResult() || this.data?.userAnswers || {};
       const profile = store.getProfile();
       const cartItems = store.getCart();
       const ownedMap = store.getOwnedProducts();
@@ -128,8 +129,23 @@ const RecommendPage = {
 
           ${this._renderRoomLayout()}
 
+          ${userAnswers.houseType === 'new' ? this._renderRenovationTips() : ''}
+
           <div class="scene-packages" id="scene-packages">
             ${this.data.bundles.map(bundle => this._renderBundle(bundle, profile, cartItems)).join('')}
+          </div>
+
+          ${this._renderAddAllRequiredButton(cartItems)}
+
+          <div class="recommend-share-bar" style="margin:8px 16px 0;display:flex;gap:10px;">
+            <button class="btn btn-outline" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;" onclick="RecommendPage.sharePlan()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              分享方案
+            </button>
+            <button class="btn btn-outline" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;" onclick="RecommendPage.copyPlanText()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              复制清单
+            </button>
           </div>
 
           <div class="recommend-shortcuts">
@@ -155,6 +171,19 @@ const RecommendPage = {
           </div>
         </div>
       `;
+
+      // 自动展开灯光氛围包，展示灯光效果
+      setTimeout(() => {
+        const lightingBundle = document.getElementById('bundle-lighting');
+        if (lightingBundle) {
+          const body = lightingBundle.querySelector('.scene-package-body');
+          const toggle = lightingBundle.querySelector('.scene-package-toggle');
+          if (body && body.style.display !== 'block') {
+            body.style.display = 'block';
+            if (toggle) toggle.style.transform = 'rotate(180deg)';
+          }
+        }
+      }, 100);
     } catch (e) {
       console.error('推荐页面渲染失败:', e);
       App.showToast('页面渲染出错，请刷新重试');
@@ -213,10 +242,12 @@ const RecommendPage = {
     }
     if (cat === 'sensor') {
       if (name.includes('门窗')) return 'sensor_door';
+      if (name.includes('人在')) return 'sensor_presence';
       if (name.includes('人体') || name.includes('雷达')) return 'sensor_body';
       if (name.includes('烟雾')) return 'sensor_smoke';
       if (name.includes('温湿度')) return 'sensor_temp';
       if (name.includes('天然气')) return 'sensor_gas';
+      if (name.includes('水浸')) return 'sensor_water';
       return 'sensor_body';
     }
     if (cat === 'appliance') {
@@ -248,9 +279,11 @@ const RecommendPage = {
     smart_panel: '客厅',
     sensor_door: '玄关',
     sensor_body: '玄关',
+    sensor_presence: '卫生间',
     sensor_smoke: '厨房',
     sensor_temp: '客厅',
     sensor_gas: '厨房',
+    sensor_water: '厨房',
     ac_controller: '客厅',
     air_purifier: '客厅',
     vacuum: '客厅',
@@ -293,57 +326,60 @@ const RecommendPage = {
       }
     });
 
-    const roomStyle = 'background:var(--bg,#0a0a0a);border:1px solid var(--border,#333);border-radius:10px;padding:10px;min-height:70px;display:flex;flex-direction:column;flex:1;';
-    const tagStyle = 'display:inline-block;font-size:11px;color:var(--text-secondary);background:var(--bg2,#1a1a1a);border-radius:4px;padding:2px 6px;margin:2px;white-space:nowrap;';
-    const roomTitleStyle = 'font-size:12px;font-weight:600;color:var(--primary,#FF8C00);margin-bottom:6px;';
+    const roomStyle = 'background:var(--bg,#0a0a0a);border:1px solid var(--border,#333);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;flex:1;';
+    const tagStyle = 'display:inline-block;font-size:10px;color:var(--text-secondary);background:var(--bg2,#1a1a1a);border-radius:3px;padding:1px 5px;margin:1px;white-space:nowrap;';
+    const roomTitleStyle = 'font-size:11px;font-weight:600;color:var(--primary,#FF8C00);margin-bottom:3px;';
 
     const renderRoomTags = items => items.map(item =>
       `<span style="${tagStyle}">${item.name}${item.qty > 1 ? '×' + item.qty : ''}</span>`
     ).join('');
 
-    const bedroomsHtml = Array.from({ length: bedroomCount }, (_, i) => `
+    // 右侧一列排列所有房间，最多显示2个卧室
+    const displayBedrooms = Math.min(bedroomCount, 2);
+    const roomsHtml = `
+      <!-- 客厅 -->
       <div style="${roomStyle}">
-        <div style="${roomTitleStyle}">卧室${i + 1}</div>
-        <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['卧室'])}</div>
+        <div style="${roomTitleStyle}">客厅</div>
+        <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['客厅'])}</div>
       </div>
-    `).join('');
+      ${Array.from({ length: displayBedrooms }, (_, i) => `
+        <div style="${roomStyle}">
+          <div style="${roomTitleStyle}">卧室${i + 1}</div>
+          <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['卧室'])}</div>
+        </div>
+      `).join('')}
+      <!-- 厨房 -->
+      <div style="${roomStyle}">
+        <div style="${roomTitleStyle}">厨房</div>
+        <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['厨房'])}</div>
+      </div>
+      <!-- 卫生间 -->
+      <div style="${roomStyle}">
+        <div style="${roomTitleStyle}">卫生间</div>
+        <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['卫生间'])}</div>
+      </div>
+      <!-- 玄关 -->
+      <div style="${roomStyle}">
+        <div style="${roomTitleStyle}">玄关</div>
+        <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['玄关'])}</div>
+      </div>
+    `;
 
     return `
-      <div style="padding:0 16px 16px;">
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <div style="padding:0 16px 8px;">
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             推荐布置
           </div>
-          <button class="btn btn-text" style="font-size:12px;padding:2px 6px;height:auto;" onclick="RecommendPage.showRoomLayoutDetail()">上传户型图</button>
+          <button class="btn btn-text" style="font-size:11px;padding:1px 4px;height:auto;" onclick="RecommendPage.showRoomLayoutDetail()">上传户型图</button>
         </div>
-        <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border,#333);margin-bottom:12px;">
-          <img src="assets/floorplan-ref.png" alt="户型图参考" style="width:100%;display:block;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <!-- 客厅 -->
-          <div style="${roomStyle}">
-            <div style="${roomTitleStyle}">客厅</div>
-            <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['客厅'])}</div>
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <div style="flex:2;min-width:0;border-radius:8px;overflow:hidden;border:1px solid var(--border,#333);display:flex;align-items:center;justify-content:center;background:var(--bg2,#1a1a1a);">
+            <img src="assets/floorplan-ref.png" alt="户型图参考" style="width:100%;height:auto;object-fit:contain;display:block;">
           </div>
-          <!-- 卧室行 -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            ${bedroomsHtml}
-          </div>
-          <!-- 厨房 卫生间 玄关 -->
-          <div style="display:flex;gap:8px;">
-            <div style="${roomStyle}">
-              <div style="${roomTitleStyle}">厨房</div>
-              <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['厨房'])}</div>
-            </div>
-            <div style="${roomStyle}">
-              <div style="${roomTitleStyle}">卫生间</div>
-              <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['卫生间'])}</div>
-            </div>
-            <div style="${roomStyle}">
-              <div style="${roomTitleStyle}">玄关</div>
-              <div style="display:flex;flex-wrap:wrap;">${renderRoomTags(roomItems['玄关'])}</div>
-            </div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+            ${roomsHtml}
           </div>
         </div>
       </div>
@@ -440,6 +476,99 @@ const RecommendPage = {
   },
 
   /**
+   * 一键加入所有必需包按钮
+   */
+  _renderAddAllRequiredButton(cartItems) {
+    const requiredBundles = this.data.bundles.filter(b => b.priority === 'required');
+    const ownedMap = store.getOwnedProducts();
+    let totalCost = 0;
+    let hasUnowned = false;
+
+    for (const bundle of requiredBundles) {
+      const catMap = this._bundleToCategoryMap(bundle);
+      for (const [catKey, info] of Object.entries(catMap)) {
+        const sel = this._getCategorySelection(bundle, catKey, info);
+        if (sel.qty <= 0) continue;
+        const ownedQty = ownedMap[catKey] || 0;
+        if (ownedQty < sel.qty) {
+          totalCost += sel.product.price * (sel.qty - ownedQty);
+          hasUnowned = true;
+        }
+      }
+    }
+
+    if (!hasUnowned) return '';
+
+    const allInCart = requiredBundles.every(bundle =>
+      cartItems.some(item => item.bundleId === bundle.id)
+    );
+
+    return `
+      <div style="margin:16px 0;display:flex;justify-content:center;">
+        <button class="btn btn-primary" style="padding:12px 28px;font-size:15px;display:flex;align-items:center;gap:8px;"
+                onclick="RecommendPage.addAllRequiredToCart()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          ${allInCart ? '必需包已加入购物车' : `一键加入所有必需包（¥${totalCost.toLocaleString()}）`}
+        </button>
+      </div>
+    `;
+  },
+
+  /**
+   * 毛坯装修预埋建议卡片
+   */
+  _renderRenovationTips() {
+    return `
+      <div class="renovation-tips-card" style="margin:16px 16px 0;background:var(--surface,#1a1a1a);border:1px solid rgba(255,140,0,0.3);border-radius:14px;padding:18px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;right:0;background:var(--primary);color:#000;padding:3px 12px;border-radius:0 14px 0 14px;font-size:11px;font-weight:600;">装修必看</div>
+        <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text-primary,#fff);">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          装修预埋建议
+        </h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;line-height:1.6;">
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">灯具</span>
+            <span style="color:var(--text-secondary,#999);">吊顶预留灯带/筒灯/射灯布线点位，多回路实现分层氛围灯光</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">水电</span>
+            <span style="color:var(--text-secondary,#999);">卫生间吊顶预留智能水阀位置，扫拖机器人预留上下水+电源</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">网络</span>
+            <span style="color:var(--text-secondary,#999);">提前规划网关/WiFi路由点位，覆盖全屋无信号死角</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">收纳</span>
+            <span style="color:var(--text-secondary,#999);">预留隐藏空间收纳路由器/网关/传感器/电源线，保持整洁</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">交互</span>
+            <span style="color:var(--text-secondary,#999);">场景面板/智能音箱安装在随手可触位置，兼顾日常操作</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">关键</span>
+            <span style="color:var(--text-secondary,#999);">水电阶段务必预留零线！智能开关需要零线供电</span>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 灯光效果预览展开/收起
+   */
+  toggleLightingDemo() {
+    const frame = document.getElementById('lighting-demo-frame');
+    const arrow = document.getElementById('lighting-demo-arrow');
+    if (frame) {
+      const isHidden = frame.style.display === 'none';
+      frame.style.display = isHidden ? 'block' : 'none';
+      if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+  },
+
+  /**
    * 获取 bundle 的原始名称（来自推荐引擎）
    */
   _getOriginalBundleName(bundleId) {
@@ -459,12 +588,12 @@ const RecommendPage = {
     const canUpgrade = level < paths.length - 1;
     const canDowngrade = level > 0;
     return `
-      <div class="bundle-upgrade-controls" onclick="event.stopPropagation();" style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-right:4px;">
-        <button class="bundle-upgrade-btn ${canUpgrade ? '' : 'disabled'}" style="width:20px;height:20px;border-radius:4px;border:1px solid ${canUpgrade ? 'var(--primary)' : '#444'};background:transparent;color:${canUpgrade ? 'var(--primary)' : '#666'};display:flex;align-items:center;justify-content:center;padding:0;cursor:${canUpgrade ? 'pointer' : 'not-allowed'};font-size:10px;" ${canUpgrade ? `onclick="RecommendPage.upgradeBundle('${bundleId}')"` : ''} title="升级">
-          ▲
+      <div class="bundle-upgrade-controls" onclick="event.stopPropagation();" style="display:flex;flex-direction:row;align-items:center;gap:3px;margin-right:4px;">
+        <button class="bundle-upgrade-btn ${canDowngrade ? '' : 'disabled'}" style="width:20px;height:20px;border-radius:4px;border:1px solid ${canDowngrade ? 'var(--primary)' : '#444'};background:${canDowngrade ? 'var(--primary)' : 'transparent'};color:${canDowngrade ? '#fff' : '#666'};display:flex;align-items:center;justify-content:center;padding:0;cursor:${canDowngrade ? 'pointer' : 'not-allowed'};font-size:8px;" ${canDowngrade ? `onclick="RecommendPage.downgradeBundle('${bundleId}')"` : ''} title="降低预算/降级">
+          <svg viewBox="0 0 12 12" width="10" height="10"><path d="M6 2v7M3 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <button class="bundle-upgrade-btn ${canDowngrade ? '' : 'disabled'}" style="width:20px;height:20px;border-radius:4px;border:1px solid ${canDowngrade ? 'var(--primary)' : '#444'};background:transparent;color:${canDowngrade ? 'var(--primary)' : '#666'};display:flex;align-items:center;justify-content:center;padding:0;cursor:${canDowngrade ? 'pointer' : 'not-allowed'};font-size:10px;" ${canDowngrade ? `onclick="RecommendPage.downgradeBundle('${bundleId}')"` : ''} title="降级">
-          ▼
+        <button class="bundle-upgrade-btn ${canUpgrade ? '' : 'disabled'}" style="width:20px;height:20px;border-radius:4px;border:1px solid ${canUpgrade ? 'var(--primary)' : '#444'};background:${canUpgrade ? 'var(--primary)' : 'transparent'};color:${canUpgrade ? '#fff' : '#666'};display:flex;align-items:center;justify-content:center;padding:0;cursor:${canUpgrade ? 'pointer' : 'not-allowed'};font-size:8px;" ${canUpgrade ? `onclick="RecommendPage.upgradeBundle('${bundleId}')"` : ''} title="增加预算/升级">
+          <svg viewBox="0 0 12 12" width="10" height="10"><path d="M6 10V3M3 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
     `;
@@ -494,13 +623,31 @@ const RecommendPage = {
       }
     }
 
+    // 计算bundle综合安装难度
+    const installDiff = this._getBundleInstallDifficulty(bundle);
+    const diffTag = installDiff === 'professional' ? '<span style="color:#e74c3c;font-size:11px;margin-left:6px;">需电工</span>'
+      : installDiff === 'replace' ? '<span style="color:#f39c12;font-size:11px;margin-left:6px;">需动手</span>'
+      : '<span style="color:#27ae60;font-size:11px;margin-left:6px;">即插即用</span>';
+
     const bundleInCart = cartItems.some(item => item.bundleId === bundle.id);
     const explanation = this.data.explanations && this.data.explanations[bundle.id]
       ? `<div class="bundle-explanation">${this.data.explanations[bundle.id]}</div>`
       : '';
 
+    // 灯光包嵌入智能照明效果展示
+    const lightingDemo = bundle.id === 'lighting'
+      ? `<div class="lighting-demo-wrapper" style="margin:12px 0;border:1px solid var(--border,#333);border-radius:12px;overflow:hidden;background:#0a0a10;">
+           <div style="height:600px;">
+             <iframe src="assets/lighting-demo/smart-lighting-demo.html" style="width:100%;height:100%;border:none;" scrolling="no"></iframe>
+           </div>
+         </div>`
+      : '';
+
+    // 默认展开必需包
+    const isExpanded = bundle.priority === 'required' ? 'expanded' : '';
+
     return `
-      <div class="scene-package ${isGateway ? 'gateway-package' : ''}"
+      <div class="scene-package ${isGateway ? 'gateway-package' : ''} ${isExpanded}"
            id="bundle-${bundle.id}">
         <div class="scene-package-header" onclick="RecommendPage.toggleBundle('${bundle.id}')">
           <div class="scene-package-icon">${this._getBundleIcon(bundle.id)}</div>
@@ -508,6 +655,7 @@ const RecommendPage = {
             <div class="scene-package-name">${bundle.name}${priorityTag}</div>
             <div class="scene-package-meta">
               ${Object.keys(catMap).length}个品类 ${bundle.tags.length > 0 ? '· ' + bundle.tags.join(' · ') : ''}
+              ${diffTag}
               ${allOwned ? '· <span style="color:var(--success)">已全拥有</span>' : ''}
             </div>
           </div>
@@ -517,6 +665,7 @@ const RecommendPage = {
         </div>
         ${explanation}
         <div class="scene-package-body">
+          ${lightingDemo}
           <div class="scene-package-products">
             ${Object.entries(catMap).map(([catKey, info]) => {
               const sel = this._getCategorySelection(bundle, catKey, info);
@@ -596,6 +745,28 @@ const RecommendPage = {
     return icons[id] || '📦';
   },
 
+  /**
+   * 计算bundle的综合安装难度
+   */
+  _getBundleInstallDifficulty(bundle) {
+    const ownedMap = store.getOwnedProducts();
+    const catMap = this._bundleToCategoryMap(bundle);
+    let maxDiff = 'stick'; // stick < replace < professional
+    const diffOrder = { stick: 0, replace: 1, professional: 2 };
+
+    for (const [catKey, info] of Object.entries(catMap)) {
+      const sel = this._getCategorySelection(bundle, catKey, info);
+      if (sel.qty <= 0) continue;
+      const ownedQty = ownedMap[catKey] || 0;
+      if (ownedQty >= sel.qty) continue; // 已拥有的不算
+      const diff = sel.product.installDifficulty || 'stick';
+      if (diffOrder[diff] > diffOrder[maxDiff]) {
+        maxDiff = diff;
+      }
+    }
+    return maxDiff;
+  },
+
   _memberText(m) {
     const map = { self: '自住', elderly: '有老人', child: '有小孩', pet: '有宠物' };
     return map[m] || m;
@@ -606,7 +777,7 @@ const RecommendPage = {
     lighting: [
       { name: '灯光基础包', products: ['light_bulb', 'switch_wall'] },
       { name: '灯光氛围包', products: ['ceiling_light', 'switch_wall'] },
-      { name: '灯光高级包', products: ['downlight', 'light_strip', 'switch_wall'] }
+      { name: '灯光氛围包', products: ['downlight', 'light_strip', 'switch_wall'] }
     ],
     security: [
       { name: '安防基础包', products: ['sensor_door'] },
@@ -622,7 +793,8 @@ const RecommendPage = {
     ],
     sensor: [
       { name: '传感基础包', products: ['sensor_body'] },
-      { name: '传感安防包', products: ['sensor_body', 'sensor_door', 'sensor_smoke', 'sensor_temp'] }
+      { name: '传感安防包', products: ['sensor_body', 'sensor_door', 'sensor_smoke', 'sensor_temp'] },
+      { name: '传感智能包', products: ['sensor_presence', 'sensor_door', 'sensor_smoke', 'sensor_temp'] }
     ],
     pet: [
       { name: '宠物基础包', products: ['pet_feeder'] },
@@ -763,6 +935,117 @@ const RecommendPage = {
     App.updateCartBadge();
     window.triggerCartAnimation && window.triggerCartAnimation();
     this.render();
+  },
+
+  /**
+   * 分享方案（调用浏览器原生分享）
+   */
+  sharePlan() {
+    const text = this._buildShareText();
+    if (navigator.share) {
+      navigator.share({
+        title: '我的智能家居方案 - 智家清单',
+        text: text,
+        url: window.location.href
+      }).catch(() => {});
+    } else {
+      this.copyPlanText();
+    }
+  },
+
+  /**
+   * 复制方案清单到剪贴板
+   */
+  copyPlanText() {
+    const text = this._buildShareText();
+    navigator.clipboard.writeText(text).then(() => {
+      App.showToast('方案清单已复制到剪贴板');
+    }).catch(() => {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      App.showToast('方案清单已复制到剪贴板');
+    });
+  },
+
+  /**
+   * 构建分享文案
+   */
+  _buildShareText() {
+    const userAnswers = store.getQuizResult() || {};
+    const ownedMap = store.getOwnedProducts();
+    const platformName = userAnswers.platform === 'apple' ? '苹果HomeKit' : userAnswers.platform === 'huawei' ? '华为HiLink' : '米家';
+    const houseTypeText = userAnswers.houseType === 'new' ? '毛坯装修' : userAnswers.houseType === 'renovate' ? '改造' : '租房';
+    const roomText = userAnswers.rooms ? `${userAnswers.rooms.bedrooms || 3}室${userAnswers.rooms.livingRooms || 1}厅` : '';
+
+    let text = `🏠 我的智能家居方案 | 智家清单\n`;
+    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `平台：${platformName} | 类型：${houseTypeText}${roomText ? ' | ' + roomText : ''}\n\n`;
+
+    let totalCost = 0;
+    for (const bundle of this.data.bundles) {
+      const catMap = this._bundleToCategoryMap(bundle);
+      let bundleCost = 0;
+      let items = [];
+
+      for (const [catKey, info] of Object.entries(catMap)) {
+        const sel = this._getCategorySelection(bundle, catKey, info);
+        if (sel.qty <= 0) continue;
+        const ownedQty = ownedMap[catKey] || 0;
+        const buyQty = sel.qty - ownedQty;
+        if (buyQty > 0) {
+          bundleCost += sel.product.price * buyQty;
+          items.push(`${sel.product.name} ×${buyQty} ¥${(sel.product.price * buyQty).toLocaleString()}`);
+        }
+      }
+
+      if (items.length > 0) {
+        totalCost += bundleCost;
+        const priority = bundle.priority === 'required' ? '[必需]' : bundle.priority === 'recommended' ? '[推荐]' : '[可选]';
+        text += `${this._getBundleIcon(bundle.id)} ${priority} ${bundle.name}\n`;
+        items.forEach(i => { text += `  · ${i}\n`; });
+        text += `  小计：¥${bundleCost.toLocaleString()}\n\n`;
+      }
+    }
+
+    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `💰 方案总预算：¥${totalCost.toLocaleString()}\n`;
+    text += `🔗 来智家清单生成你的方案：${window.location.href}`;
+
+    return text;
+  },
+
+  /**
+   * 一键加入所有必需包到购物车
+   */
+  addAllRequiredToCart() {
+    const requiredBundles = this.data.bundles.filter(b => b.priority === 'required');
+    const ownedMap = store.getOwnedProducts();
+    let addedCount = 0;
+
+    for (const bundle of requiredBundles) {
+      const catMap = this._bundleToCategoryMap(bundle);
+      for (const [catKey, info] of Object.entries(catMap)) {
+        const sel = this._getCategorySelection(bundle, catKey, info);
+        if (sel.qty <= 0) continue;
+        const ownedQty = ownedMap[catKey] || 0;
+        const buyQty = sel.qty - ownedQty;
+        if (buyQty <= 0) continue;
+        store.addToCart(sel.productId, buyQty, bundle.id);
+        addedCount++;
+      }
+    }
+
+    if (addedCount > 0) {
+      App.showToast(`已将所有必需包加入购物车`);
+      App.updateCartBadge();
+      window.triggerCartAnimation && window.triggerCartAnimation();
+      this.render();
+    }
   },
 
   _getSceneDescription(bundleId) {
