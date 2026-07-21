@@ -22,7 +22,7 @@ const ShopPage = {
               ${cartCount > 0 ? `<span class="cart-badge">${cartCount}</span>` : ''}
             </div>
           </div>
-          <p>精选${ProductsDB.length}款京东在售产品</p>
+          <p>精选${ProductsDB.length}款严选产品</p>
         </div>
 
         <!-- 搜索 -->
@@ -115,7 +115,13 @@ const ShopPage = {
     empty.style.display = 'none';
 
     grid.innerHTML = products.map(p => `
-      <div class="product-card" onclick="router.navigate('product-detail', {id: '${p.id}'})">
+      <div class="product-card" onclick="router.navigate('product-detail', {id: '${p.id}'})" data-pid="${p.id}">
+        <div class="product-card-image" style="height:120px;background:linear-gradient(135deg,${this._getProductImageGradient(p.category)});display:flex;align-items:center;justify-content:center;border-radius:10px 10px 0 0;margin:-12px -12px 10px;position:relative;overflow:hidden;">
+          <span style="font-size:48px;opacity:0.3;">${this._getCategoryEmoji(p.category)}</span>
+          <div class="product-card-tags" style="position:absolute;bottom:4px;left:4px;right:4px;display:flex;flex-wrap:wrap;gap:3px;margin:0;">
+            ${p.tags.slice(0, 3).map(tag => `<span class="mini-tag" style="font-size:10px;padding:1px 5px;margin:0;background:rgba(0,0,0,0.55);color:#fff;border-radius:3px;backdrop-filter:blur(2px);">${tag}</span>`).join('')}
+          </div>
+        </div>
         <button class="product-add-btn" onclick="event.stopPropagation(); ShopPage.addToCart('${p.id}')">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
@@ -125,9 +131,6 @@ const ShopPage = {
         </div>
         <h3 class="product-card-name">${p.name}</h3>
         <p class="product-card-desc">${p.description}</p>
-        <div class="product-card-tags">
-          ${p.tags.slice(0, 2).map(t => `<span class="mini-tag">${t}</span>`).join('')}
-        </div>
         <div class="product-card-bottom">
           <span class="product-card-price">${p.priceLabel}</span>
           <span class="product-card-sales">${p.sales > 10000 ? (p.sales / 10000).toFixed(1) + '万' : p.sales}人付款</span>
@@ -149,6 +152,54 @@ const ShopPage = {
       cartIcon.insertAdjacentHTML('beforeend', `<span class="cart-badge">${count}</span>`);
     }
     window.triggerCartAnimation();
+  },
+
+  openJd(url) {
+    if (!url) { this._showToast('暂无购买链接'); return; }
+    window.open(url, '_blank');
+  },
+
+  copyJdLink(url, name) {
+    if (!url) { this._showToast('暂无购买链接'); return; }
+    var text = name + ' 购买链接：' + url;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => this._showToast('链接已复制')).catch(() => this._showToast('复制失败'));
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      this._showToast('链接已复制');
+    }
+  },
+
+  _getProductImageGradient(category) {
+    const gradients = {
+      gateway: '#1a1a2e,#16213e',
+      speaker: '#2d132c,#801336',
+      router: '#0f3460,#16213e',
+      light: '#3d2b1f,#5c3d2e',
+      sensor: '#1a1a2e,#0f3460',
+      switch: '#2c3e50,#34495e',
+      curtain: '#2d3436,#636e72',
+      lock: '#1a1a2e,#2d3436',
+      camera: '#2c3e50,#1a1a2e',
+      appliance: '#2d132c,#3d2b1f',
+      outlet: '#1a1a2e,#2c3e50'
+    };
+    return gradients[category] || '#1a1a2e,#2c3e50';
+  },
+
+  _getCategoryEmoji(category) {
+    const emojis = {
+      gateway: '🔌', speaker: '🔊', router: '📡',
+      light: '💡', sensor: '📡', switch: '🔘',
+      curtain: '🪟', lock: '🔒', camera: '📹',
+      appliance: '🤖', outlet: '🔌'
+    };
+    return emojis[category] || '📦';
   },
 
   _showToast(message) {

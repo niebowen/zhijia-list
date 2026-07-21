@@ -8,17 +8,17 @@ const RecommendRuleConfig = {
   bundles: [
     {
       id: 'gateway',
-      name: '网关基础包',
-      description: '智能设备的中枢，所有方案的基础',
+      name: '必备基础包',
+      description: '网关+音箱+路由器，智能家居的神经中枢。部分音箱和路由器已集成网关功能，系统会自动避免重复推荐',
       weight: 100,
       basePriority: 'required',
       // 用户选择时加分项
       boost: { any: 100 },
-      products: ['gateway']
+      products: ['gateway', 'speaker', 'router']
     },
     {
       id: 'lighting',
-      name: '灯光氛围包',
+      name: '灯光包',
       description: '筒射灯+灯带组合消除暗区，色温亮度分段调节，一键切换阅读/观影/夜间模式',
       weight: 80,
       basePriority: 'recommended',
@@ -27,7 +27,7 @@ const RecommendRuleConfig = {
     },
     {
       id: 'curtain',
-      name: '窗帘智能包',
+      name: '窗帘包',
       description: '定时开合，语音控制',
       weight: 50,
       basePriority: 'optional',
@@ -36,7 +36,7 @@ const RecommendRuleConfig = {
     },
     {
       id: 'security',
-      name: '安防安心包',
+      name: '安防包',
       description: '门锁、监控、报警，守护安全',
       weight: 70,
       basePriority: 'recommended',
@@ -166,7 +166,8 @@ class Recommender {
     this.gateway = new GatewayChecker(products);
   }
 
-  generate(userAnswers) {
+  generate(userAnswers, tier) {
+    tier = tier || 'premium';
     var platform = userAnswers.platform;
     var houseType = userAnswers.houseType;
     var members = userAnswers.members;
@@ -180,7 +181,8 @@ class Recommender {
       platforms: [platform],
       painPoints: painPoints,
       rooms: rooms || null,
-      userAnswers: userAnswers
+      userAnswers: userAnswers,
+      tier: tier
     };
 
     // 计算场景包权重
@@ -188,7 +190,7 @@ class Recommender {
 
     // 根据权重排序，选出前5个场景包
     var topBundles = bundleWeights
-      .sort(function(a, b) { return b.weight - a.weight; })
+      .sort(function(a, b) { return b.calculatedWeight - a.calculatedWeight; })
       .slice(0, 5);
 
     // 为每个场景包选择产品
@@ -202,7 +204,8 @@ class Recommender {
         members,
         scenarios,
         selectedProductIds,
-        userAnswers
+        userAnswers,
+        tier
       );
       result.bundles.push(bundle);
       bundle.products.forEach(function(p) { selectedProductIds.add(p.id); });
@@ -325,7 +328,8 @@ class Recommender {
     });
   }
 
-  _buildBundle(bundleConfig, platform, houseType, members, scenarios, selectedIds, userAnswers) {
+  _buildBundle(bundleConfig, platform, houseType, members, scenarios, selectedIds, userAnswers, tier) {
+    tier = tier || 'premium';
     var self = this;
     var bundle = {
       id: bundleConfig.id,
@@ -340,9 +344,19 @@ class Recommender {
     var rooms = userAnswers.rooms || {};
     var painPoints = userAnswers.painPoints || [];
 
+    // tier 允许的产品 stage
+    var allowedStages = {
+      base: ['base'],
+      standard: ['base', 'comfort'],
+      premium: ['base', 'comfort', 'full', 'advanced']
+    };
+    var tierStages = allowedStages[tier] || allowedStages.premium;
+
     // 通用产品名称映射到品类（当精确id找不到时按品类匹配）
     var categoryMap = {
       gateway: 'gateway',
+      speaker: 'speaker',
+      router: 'router',
       light_bulb: 'light',
       light_strip: 'light',
       downlight: 'light',
@@ -392,12 +406,22 @@ class Recommender {
 
       // 如果精确id找不到，尝试按通用名称映射到品类查找
       if (!product && categoryMap[actualProductId]) {
-        product = self.products.find(function(p) {
+        var catProducts = self.products.filter(function(p) {
           return p.category === categoryMap[actualProductId] &&
             (p.platforms.indexOf(platform) !== -1 || p.platforms.indexOf('universal') !== -1) &&
             !selectedIds.has(p.id) &&
-            !candidates.find(function(c) { return c.id === p.id; });
+            !candidates.find(function(c) { return c.product.id === p.id; });
         });
+        // 按 tier 优先级选择最合适的产品
+        var stagePriority = { base: 1, comfort: 2, full: 3, advanced: 4 };
+        catProducts.sort(function(a, b) {
+          var pa = stagePriority[a.stage] || 1;
+          var pb = stagePriority[b.stage] || 1;
+          if (tier === 'base') return pa - pb; // 经济版优先选基础款
+          if (tier === 'premium') return pb - pa; // 豪华版优先选高端款
+          return pa - pb; // 标准版优先基础款，兼顾性价比
+        });
+        product = catProducts[0];
       }
 
       if (!product) return;
@@ -436,6 +460,21 @@ class Recommender {
         platformPriority: platformPriority
       });
     });
+
+    // tier 过滤：根据方案档次过滤产品
+    var originalCandidates = candidates.slice();
+    candidates = candidates.filter(function(c) {
+      var stage = c.product.stage || 'base';
+      return tierStages.indexOf(stage) !== -1;
+    });
+    // 如果过滤后为空，保留原候选中 stage 最低（最便宜）的一个
+    if (candidates.length === 0 && originalCandidates.length > 0) {
+      var stageOrder = { base: 1, comfort: 2, full: 3, advanced: 4 };
+      originalCandidates.sort(function(a, b) {
+        return (stageOrder[a.product.stage] || 1) - (stageOrder[b.product.stage] || 1);
+      });
+      candidates = [originalCandidates[0]];
+    }
 
     // 按平台优先级排序（精确匹配平台排前面）
     candidates.sort(function(a, b) {
@@ -581,7 +620,7 @@ class Recommender {
 
     // 平台匹配
     if (Array.isArray(product.platforms) && product.platforms.indexOf('universal') === -1) {
-      var platformNames = { mijia: '米家', apple: '苹果HomeKit', huawei: '华为HiLink' };
+      var platformNames = { mijia: '米家', apple: '苹果HomeKit', huawei: '华为鸿蒙智联' };
       var name = product.platforms.map(function(p) { return platformNames[p] || p; }).join(' / ');
       reasons.push('匹配' + name + '平台');
     }

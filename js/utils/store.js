@@ -76,6 +76,22 @@ class Store {
     this.set('recommendation', data);
   }
 
+  getRecommendationTier() {
+    return this.get('recommendation_tier', 'premium');
+  }
+
+  saveRecommendationTier(tier) {
+    this.set('recommendation_tier', tier);
+  }
+
+  getTierBudgets() {
+    return this.get('tier_budgets', null);
+  }
+
+  saveTierBudgets(budgets) {
+    this.set('tier_budgets', budgets);
+  }
+
   // 产品对比列表
   getCompareList() {
     return this.get('compare_list', []);

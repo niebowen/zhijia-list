@@ -91,7 +91,7 @@ const QuizPage = {
       options: [
         { value: 'mijia', label: '米家', icon: 'mijia', desc: '小米生态，产品丰富性价比高' },
         { value: 'apple', label: '苹果HomeKit', icon: 'apple', desc: '隐私优先，与iPhone深度整合' },
-        { value: 'huawei', label: '华为HiLink', icon: 'huawei', desc: '华为生态，稳定可靠' },
+        { value: 'huawei', label: '华为鸿蒙智联', icon: 'huawei', desc: '华为生态，稳定可靠' },
         { value: 'unknown', label: '不太了解，先看看', icon: 'unknown', desc: '先看方案再决定平台' }
       ]
     }
@@ -256,9 +256,9 @@ const QuizPage = {
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border,#333);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
             <span style="font-size:15px;font-weight:600;color:var(--text-primary,#fff);">房间结构</span>
-            <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;height:auto;display:flex;align-items:center;gap:4px;border-radius:8px;" onclick="QuizPage.showUploadFloorplan()">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              上传户型图自动识别
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;height:auto;display:flex;align-items:center;gap:4px;border-radius:8px;" onclick="router.navigate('floorplan')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              编辑户型图
             </button>
           </div>
           <div class="room-config-grid">
@@ -546,15 +546,15 @@ const QuizPage = {
             <th style="text-align:left;padding:6px 8px;color:var(--text-secondary,#999);font-weight:500;">对比维度</th>
             <th style="text-align:center;padding:6px 8px;color:#FF8C00;font-weight:600;">米家</th>
             <th style="text-align:center;padding:6px 8px;color:#007AFF;font-weight:600;">HomeKit</th>
-            <th style="text-align:center;padding:6px 8px;color:#CF0A2C;font-weight:600;">华为HiLink</th>
+            <th style="text-align:center;padding:6px 8px;color:#CF0A2C;font-weight:600;">华为鸿蒙智联</th>
           </tr>
         </thead>
         <tbody>
           <tr style="border-bottom:1px solid var(--border,#222);">
             <td style="padding:6px 8px;color:var(--text-secondary,#999);">产品丰富度</td>
-            <td style="text-align:center;padding:6px 8px;color:#10b981;">2000+款</td>
-            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">500+款</td>
+            <td style="text-align:center;padding:6px 8px;color:#10b981;">6000+款</td>
             <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">800+款</td>
+            <td style="text-align:center;padding:6px 8px;color:var(--text-primary,#fff);">1000+款</td>
           </tr>
           <tr style="border-bottom:1px solid var(--border,#222);">
             <td style="padding:6px 8px;color:var(--text-secondary,#999);">价格区间</td>
@@ -613,7 +613,7 @@ const QuizPage = {
         <div style="text-align:center;margin-bottom:16px;">
           <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--primary)" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </div>
-        <h3 style="margin:0 0 12px;color:var(--text-primary,#fff);font-size:18px;text-align:center;">上传户型图</h3>
+        <h3 style="margin:0 0 12px;color:var(--text-primary,#fff);font-size:18px;text-align:center;">编辑户型图</h3>
         <p style="margin:0 0 16px;color:var(--text-secondary,#999);font-size:14px;line-height:1.6;text-align:center;">本功能尚待开发。根据上传图纸，自动识别户型，并标注设备推荐安装位置。</p>
         <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('floorplan-upload-overlay').remove()">知道了</button>
       </div>
@@ -733,11 +733,21 @@ const QuizPage = {
 
       store.saveQuizResult(this.answers);
 
-      // Generate recommendation
+      // Generate recommendation for all tiers
       try {
         const recommender = new Recommender(ProductsDB);
-        const result = recommender.generate(this.answers);
-        store.saveRecommendation(result);
+        const tiers = ['base', 'standard', 'premium'];
+        const tierBudgets = {};
+        let defaultResult = null;
+        tiers.forEach(function(t) {
+          var res = recommender.generate(this.answers, t);
+          tierBudgets[t] = res.totalCost;
+          if (t === (store.getRecommendationTier() || 'premium')) {
+            defaultResult = res;
+          }
+        }.bind(this));
+        store.saveTierBudgets(tierBudgets);
+        store.saveRecommendation(defaultResult || recommender.generate(this.answers, 'premium'));
       } catch (e) {
         console.error('推荐生成失败:', e);
       }

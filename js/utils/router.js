@@ -98,3 +98,4 @@ class Router {
 
 // 全局路由实例
 const router = new Router();
+window.router = router;

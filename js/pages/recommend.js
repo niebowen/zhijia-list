@@ -27,6 +27,7 @@ const RecommendPage = {
     curtain_motor: '智能窗帘电机',
     gateway: '智能网关',
     speaker: '智能音箱',
+    router: '路由器',
     ac_controller: '空调伴侣',
     air_purifier: '空气净化器',
     vacuum: '扫拖机器人',
@@ -51,7 +52,8 @@ const RecommendPage = {
       if (quizResult) {
         try {
           const recommender = new Recommender(ProductsDB);
-          this.data = recommender.generate(quizResult);
+          const tier = store.getRecommendationTier() || 'premium';
+          this.data = recommender.generate(quizResult, tier);
           store.saveRecommendation(this.data);
         } catch (e) {
           console.error('重新生成推荐失败:', e);
@@ -86,7 +88,7 @@ const RecommendPage = {
       // 应用用户保存的 bundle 升级级别
       this._applyBundleUpgradeLevels();
 
-      const platformName = userAnswers.platform === 'apple' ? '苹果HomeKit' : userAnswers.platform === 'huawei' ? '华为HiLink' : '米家';
+      const platformName = userAnswers.platform === 'apple' ? '苹果HomeKit' : userAnswers.platform === 'huawei' ? '华为鸿蒙智联' : '米家';
       const houseTypeText = userAnswers.houseType === 'new' ? '毛坯装修' : userAnswers.houseType === 'renovate' ? '改造' : '租房';
       const roomText = userAnswers.rooms
         ? `${userAnswers.rooms.bedrooms || 3}室${userAnswers.rooms.livingRooms || 1}厅`
@@ -120,22 +122,34 @@ const RecommendPage = {
             </div>
           </div>
 
-          <div class="budget-bar">
+          <div class="budget-bar" style="display:flex;align-items:center;justify-content:space-between;">
             <div class="budget-info">
               <span class="budget-label">方案总预算</span>
               <span class="budget-current">¥${totalCost.toLocaleString()}</span>
             </div>
+            <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;" onclick="RecommendPage.addAllRequiredToCart()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+              一键加购
+            </button>
           </div>
+
+          ${this._renderTierSwitch()}
 
           ${this._renderRoomLayout()}
 
           ${userAnswers.houseType === 'new' ? this._renderRenovationTips() : ''}
 
           <div class="scene-packages" id="scene-packages">
-            ${this.data.bundles.map(bundle => this._renderBundle(bundle, profile, cartItems)).join('')}
+            ${(() => {
+              const gatewayIdx = this.data.bundles.findIndex(b => b.id === 'gateway');
+              const bundles = [...this.data.bundles];
+              if (gatewayIdx > 0) {
+                const [gateway] = bundles.splice(gatewayIdx, 1);
+                bundles.unshift(gateway);
+              }
+              return bundles.map(bundle => this._renderBundle(bundle, profile, cartItems)).join('');
+            })()}
           </div>
-
-          ${this._renderAddAllRequiredButton(cartItems)}
 
           <div class="recommend-share-bar" style="margin:8px 16px 0;display:flex;gap:10px;">
             <button class="btn btn-outline" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;" onclick="RecommendPage.sharePlan()">
@@ -169,21 +183,34 @@ const RecommendPage = {
               </div>
             </div>
           </div>
+
+          <div class="floorplan-entry">
+            <div class="floorplan-entry-header">
+              <h3>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                户型布局建议
+              </h3>
+              <span style="font-size:11px;color:var(--text-muted);">可选功能</span>
+            </div>
+            <div class="floorplan-entry-body">
+              <div class="floorplan-entry-desc">
+                编辑户型图，查看设备最佳安装位置
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;">
+                支持自动生成设备布局建议
+              </div>
+              <button class="floorplan-entry-btn" id="floorplan-entry-btn">去编辑 →</button>
+            </div>
+          </div>
         </div>
       `;
-
-      // 自动展开灯光氛围包，展示灯光效果
+    // 绑定户型编辑器入口按钮
       setTimeout(() => {
-        const lightingBundle = document.getElementById('bundle-lighting');
-        if (lightingBundle) {
-          const body = lightingBundle.querySelector('.scene-package-body');
-          const toggle = lightingBundle.querySelector('.scene-package-toggle');
-          if (body && body.style.display !== 'block') {
-            body.style.display = 'block';
-            if (toggle) toggle.style.transform = 'rotate(180deg)';
-          }
+        const btn = document.getElementById('floorplan-entry-btn');
+        if (btn) {
+          btn.addEventListener('click', () => router.navigate('floorplan'));
         }
-      }, 100);
+      }, 0);
     } catch (e) {
       console.error('推荐页面渲染失败:', e);
       App.showToast('页面渲染出错，请刷新重试');
@@ -372,7 +399,7 @@ const RecommendPage = {
             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             推荐布置
           </div>
-          <button class="btn btn-text" style="font-size:11px;padding:1px 4px;height:auto;" onclick="RecommendPage.showRoomLayoutDetail()">上传户型图</button>
+          <button class="btn btn-text" style="font-size:11px;padding:1px 4px;height:auto;" onclick="RecommendPage.showRoomLayoutDetail()">编辑户型图</button>
         </div>
         <div style="display:flex;gap:8px;align-items:stretch;">
           <div style="flex:2;min-width:0;border-radius:8px;overflow:hidden;border:1px solid var(--border,#333);display:flex;align-items:center;justify-content:center;background:var(--bg2,#1a1a1a);">
@@ -395,7 +422,7 @@ const RecommendPage = {
         <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,140,0,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </div>
-        <h3 style="margin:0 0 16px;color:var(--text-primary,#fff);font-size:18px;">上传户型图</h3>
+        <h3 style="margin:0 0 16px;color:var(--text-primary,#fff);font-size:18px;">编辑户型图</h3>
         <p style="margin:0 0 16px;color:var(--text-secondary,#999);font-size:14px;line-height:1.6;">本功能尚待开发。<br>根据上传图纸，自动识别户型，并标注设备推荐安装位置。</p>
         <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border,#333);margin-bottom:16px;">
           <img src="assets/floorplan-ref.png" alt="户型图示意" style="width:100%;display:block;">
@@ -519,40 +546,113 @@ const RecommendPage = {
    */
   _renderRenovationTips() {
     return `
-      <div class="renovation-tips-card" style="margin:16px 16px 0;background:var(--surface,#1a1a1a);border:1px solid rgba(255,140,0,0.3);border-radius:14px;padding:18px;position:relative;overflow:hidden;">
+      <div class="renovation-tips-card" id="renovation-tips" style="margin:16px 16px 12px;background:var(--surface,#1a1a1a);border:1px solid rgba(255,140,0,0.3);border-radius:14px;padding:18px;position:relative;overflow:hidden;">
         <div style="position:absolute;top:0;right:0;background:var(--primary);color:#000;padding:3px 12px;border-radius:0 14px 0 14px;font-size:11px;font-weight:600;">装修必看</div>
-        <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text-primary,#fff);">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          装修预埋建议
-        </h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;line-height:1.6;">
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">灯具</span>
-            <span style="color:var(--text-secondary,#999);">吊顶预留灯带/筒灯/射灯布线点位，多回路实现分层氛围灯光</span>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">水电</span>
-            <span style="color:var(--text-secondary,#999);">卫生间吊顶预留智能水阀位置，扫拖机器人预留上下水+电源</span>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">网络</span>
-            <span style="color:var(--text-secondary,#999);">提前规划网关/WiFi路由点位，覆盖全屋无信号死角</span>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">收纳</span>
-            <span style="color:var(--text-secondary,#999);">预留隐藏空间收纳路由器/网关/传感器/电源线，保持整洁</span>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">交互</span>
-            <span style="color:var(--text-secondary,#999);">场景面板/智能音箱安装在随手可触位置，兼顾日常操作</span>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <span style="color:var(--primary);font-weight:700;flex-shrink:0;">关键</span>
-            <span style="color:var(--text-secondary,#999);">水电阶段务必预留零线！智能开关需要零线供电</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="RecommendPage.toggleRenovationTips()">
+          <h3 style="margin:0;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text-primary,#fff);">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            装修预埋建议
+          </h3>
+          <svg id="renovation-toggle" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text-muted)" stroke-width="2" style="transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div id="renovation-body" style="display:none;margin-top:12px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;line-height:1.6;">
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <span style="color:var(--primary);font-weight:700;flex-shrink:0;">灯具</span>
+              <span style="color:var(--text-secondary,#999);">吊顶预留灯带/筒灯/射灯布线点位，多回路实现分层氛围灯光</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <span style="color:var(--primary);font-weight:700;flex-shrink:0;">水电</span>
+              <span style="color:var(--text-secondary,#999);">卫生间吊顶预留智能水阀位置，扫拖机器人预留上下水+电源</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <span style="color:var(--primary);font-weight:700;flex-shrink:0;">网络</span>
+              <span style="color:var(--text-secondary,#999);">提前规划网关/WiFi路由点位，覆盖全屋无信号死角</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <span style="color:var(--primary);font-weight:700;flex-shrink:0;">收纳</span>
+              <span style="color:var(--text-secondary,#999);">预留隐藏空间收纳路由器/网关/传感器/电源线，保持整洁</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <span style="color:var(--primary);font-weight:700;flex-shrink:0;">交互</span>
+              <span style="color:var(--text-secondary,#999);">场景面板/智能音箱安装在随手可触位置，兼顾日常操作</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:6px;">
+              <span style="color:var(--primary);font-weight:700;flex-shrink:0;">关键</span>
+              <span style="color:var(--text-secondary,#999);">水电阶段务必预留零线！智能开关需要零线供电</span>
+            </div>
           </div>
         </div>
       </div>
     `;
+  },
+
+  toggleRenovationTips() {
+    const body = document.getElementById('renovation-body');
+    const toggle = document.getElementById('renovation-toggle');
+    if (!body) return;
+    if (body.style.display === 'none') {
+      body.style.display = 'block';
+      if (toggle) toggle.style.transform = 'rotate(180deg)';
+    } else {
+      body.style.display = 'none';
+      if (toggle) toggle.style.transform = '';
+    }
+  },
+
+  _renderTierSwitch() {
+    const currentTier = this.data?.tier || 'premium';
+    const tierBudgets = store.getTierBudgets() || {};
+    const tiers = [
+      { key: 'base', label: '经济版', desc: '入门' },
+      { key: 'standard', label: '标准版', desc: '舒适' },
+      { key: 'premium', label: '豪华版', desc: '全屋' }
+    ];
+    return `
+      <div class="tier-switch" style="margin:10px 16px 0;display:flex;gap:6px;">
+        ${tiers.map(t => {
+          const budget = tierBudgets[t.key];
+          const budgetText = budget ? `¥${budget.toLocaleString()}` : '';
+          const isActive = currentTier === t.key;
+          return `
+          <button class="btn ${isActive ? 'btn-primary' : 'btn-outline'}" style="flex:1;padding:6px 2px;font-size:12px;text-align:center;" onclick="RecommendPage.switchTier('${t.key}')">
+            <div style="font-weight:600;font-size:13px;">${t.label}</div>
+            <div style="font-size:10px;opacity:0.6;margin-top:1px;">${t.desc}</div>
+            ${budgetText ? `<div style="font-size:12px;color:${isActive ? '#fff' : 'var(--primary)'};margin-top:2px;font-weight:600;">${budgetText}</div>` : ''}
+          </button>
+        `}).join('')}
+      </div>
+    `;
+  },
+
+  switchTier(tier) {
+    var self = RecommendPage;
+    var current = self.data?.tier || 'premium';
+    if (tier === current) return;
+    store.saveRecommendationTier(tier);
+    // 清除所有 bundle 升级级别缓存，避免旧级别覆盖新生成的数据
+    Object.keys(self._bundleUpgradePaths).forEach(function(id) { store.removeBundleLevel(id); });
+    const quizResult = store.getQuizResult() || self.data?.userAnswers;
+    if (!quizResult) {
+      App.showToast('暂无测评数据，请重新测评');
+      return;
+    }
+    App.showToast('正在生成' + (tier === 'base' ? '经济版' : tier === 'standard' ? '标准版' : '豪华版') + '方案...');
+    try {
+      const recommender = new Recommender(ProductsDB);
+      self.data = recommender.generate(quizResult, tier);
+      store.saveRecommendation(self.data);
+      self._originalBundleNames = {};
+      self.data.bundles.forEach(b => {
+        self._originalBundleNames[b.id] = b.name;
+      });
+      self.budgetLimit = self.data.totalCost;
+      self._skipAutoExpandLighting = true;
+      self.render();
+    } catch (e) {
+      console.error('切换方案档次失败:', e);
+      App.showToast('方案生成失败，请重试');
+    }
   },
 
   /**
@@ -600,12 +700,6 @@ const RecommendPage = {
   },
 
   _renderBundle(bundle, profile, cartItems) {
-    const priorityTag = bundle.priority === 'required'
-      ? '<span class="priority-tag required">必需</span>'
-      : bundle.priority === 'recommended'
-      ? '<span class="priority-tag recommended">强烈推荐</span>'
-      : '<span class="priority-tag optional">可选</span>';
-
     const isGateway = bundle.id === 'gateway';
     const ownedMap = store.getOwnedProducts();
     const catMap = this._bundleToCategoryMap(bundle);
@@ -643,8 +737,8 @@ const RecommendPage = {
          </div>`
       : '';
 
-    // 默认展开必需包
-    const isExpanded = bundle.priority === 'required' ? 'expanded' : '';
+    // 默认不自动展开
+    const isExpanded = '';
 
     return `
       <div class="scene-package ${isGateway ? 'gateway-package' : ''} ${isExpanded}"
@@ -652,16 +746,24 @@ const RecommendPage = {
         <div class="scene-package-header" onclick="RecommendPage.toggleBundle('${bundle.id}')">
           <div class="scene-package-icon">${this._getBundleIcon(bundle.id)}</div>
           <div class="scene-package-info">
-            <div class="scene-package-name">${bundle.name}${priorityTag}</div>
-            <div class="scene-package-meta">
-              ${Object.keys(catMap).length}个品类 ${bundle.tags.length > 0 ? '· ' + bundle.tags.join(' · ') : ''}
-              ${diffTag}
-              ${allOwned ? '· <span style="color:var(--success)">已全拥有</span>' : ''}
-            </div>
+            <div class="scene-package-name"><span class="name-text">${bundle.name}</span></div>
+            <div class="scene-package-meta">${Object.keys(catMap).length}个品类 ${diffTag}${allOwned ? ' · <span style="color:var(--success)">已全拥有</span>' : ''}</div>
           </div>
-          <div class="scene-package-price">¥${unownedCost.toLocaleString()}</div>
-          ${this._renderUpgradeButtons(bundle.id)}
-          <svg class="scene-package-toggle" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          <div class="scene-package-actions" onclick="event.stopPropagation();">
+            <div class="scene-package-price">¥${unownedCost.toLocaleString()}</div>
+            ${allOwned ? '' : `
+              <button class="btn btn-primary" style="width:36px;height:36px;padding:0;font-size:11px;display:flex;align-items:center;justify-content:center;border-radius:8px;"
+                      onclick="RecommendPage.addBundleToCart('${bundle.id}')">
+                ${bundleInCart ? '已' : '购'}
+              </button>
+            `}
+            <button class="btn btn-outline" style="width:36px;height:36px;padding:0;font-size:11px;display:flex;align-items:center;justify-content:center;border-radius:8px;"
+                    onclick="RecommendPage.viewBundleDetail('${bundle.id}')">
+              详
+            </button>
+            ${this._renderUpgradeButtons(bundle.id)}
+          </div>
+          <svg class="scene-package-toggle" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         ${explanation}
         <div class="scene-package-body">
@@ -678,11 +780,12 @@ const RecommendPage = {
               const note = this._categoryNotes[catKey];
               const priceStyle = isOwned || needQty === 0 ? 'style="color:#666; text-decoration:line-through;"' : '';
               const itemStyle = isOwned ? 'sp-product-owned' : (needQty === 0 ? 'sp-product-owned' : '');
+              const priorityBadge = bundle.priority === 'required' ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(255,140,0,0.15);color:#FF8C00;margin-left:4px;flex-shrink:0;">必需</span>' : bundle.priority === 'recommended' ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(34,197,94,0.15);color:#22c55e;margin-left:4px;flex-shrink:0;">推荐</span>' : '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:rgba(100,100,100,0.15);color:#888;margin-left:4px;flex-shrink:0;">可选</span>';
               return `
                 <div class="sp-product ${itemStyle}" onclick="RecommendPage.viewCategoryProducts('${bundle.id}', '${catKey}')">
                   <div class="sp-product-info">
                     <div class="sp-product-name">
-                      ${catName}
+                      ${catName}${priorityBadge}
                       ${needQty === 0 ? '<span class="owned-tag" style="background:#666">已移除</span>' : isOwned ? '<span class="owned-tag">已拥有</span>' : partialOwned ? `<span class="owned-tag" style="background:#b8860b">已有${ownedQty}个</span>` : ''}
                     </div>
                     <div class="sp-product-desc">
@@ -691,7 +794,7 @@ const RecommendPage = {
                       ${partialOwned && needQty > 0 ? ` · 还需购买${buyQty}个` : ''}
                     </div>
                   </div>
-                  <div class="sp-product-actions" style="display:flex; align-items:center; gap:10px;" onclick="event.stopPropagation();">
+                  <div class="sp-product-actions" style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">
                     ${needQty > 0 ? `
                     <div class="qty-stepper" style="display:flex;align-items:center;gap:4px;">
                       <button class="btn btn-sm" style="width:26px;height:26px;border-radius:50%;padding:0;font-size:16px;line-height:1;"
@@ -704,27 +807,17 @@ const RecommendPage = {
                     <button class="btn btn-sm" style="width:26px;height:26px;border-radius:50%;padding:0;font-size:16px;line-height:1;"
                             onclick="RecommendPage.updateCategoryQty('${bundle.id}', '${catKey}', 1, event)">+</button>
                     `}
-                    <div class="sp-product-price" ${priceStyle} style="min-width:50px;text-align:right;">
+                    <div class="sp-product-price" ${priceStyle} style="min-width:40px;text-align:right;">
                       ${needQty === 0 ? '¥0' : isOwned ? '¥0' : `¥${(sel.product.price * buyQty).toLocaleString()}`}
                     </div>
+                    ${needQty > 0 && !isOwned && sel.product.promotionUrl ? `
+                    <button class="btn btn-sm" style="padding:3px 8px;font-size:10px;background:var(--primary);color:#000;border:none;border-radius:4px;white-space:nowrap;"
+                            onclick="RecommendPage.openJd('${sel.product.promotionUrl}')">购买</button>
+                    ` : ''}
                   </div>
                 </div>
               `;
             }).join('')}
-          </div>
-          <div class="scene-package-actions">
-            ${allOwned ? `
-              <button class="btn btn-outline" disabled>已全拥有</button>
-            ` : `
-              <button class="btn btn-primary"
-                      onclick="event.stopPropagation(); RecommendPage.addBundleToCart('${bundle.id}')">
-                ${bundleInCart ? '已加入购物车' : '加入购物车'}
-              </button>
-            `}
-            <button class="btn btn-outline"
-                    onclick="event.stopPropagation(); RecommendPage.viewBundleDetail('${bundle.id}')">
-              查看详情
-            </button>
           </div>
         </div>
       </div>
@@ -733,16 +826,16 @@ const RecommendPage = {
 
   _getBundleIcon(id) {
     const icons = {
-      gateway: '🔌',
-      lighting: '💡',
-      curtain: '🪟',
-      security: '🔒',
-      sensor: '📡',
-      climate: '🌡️',
-      pet: '🐾',
-      chores: '🧹'
+      gateway: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FF8C00" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="17" y1="7" x2="17" y2="17"/></svg>',
+      lighting: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2v1"/><path d="M12 7a5 5 0 100 10 5 5 0 000-10z"/></svg>',
+      curtain: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M4 3v18"/><path d="M20 3v18"/><path d="M4 7h16"/><path d="M4 11h16"/><path d="M4 15h16"/></svg>',
+      security: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+      sensor: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 01-2 2H10a2 2 0 01-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z"/><line x1="9" y1="22" x2="15" y2="22"/></svg>',
+      climate: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#22d3ee" stroke-width="2"><path d="M14 4v10.54a4 4 0 11-4 0V4a2 2 0 114 0z"/></svg>',
+      pet: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f472b6" stroke-width="2"><path d="M10 5.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5"/><path d="M4.5 10c-.8 0-1.5-.7-1.5-1.5S3.7 7 4.5 7"/><path d="M19.5 10c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5"/><circle cx="12" cy="14" r="6"/></svg>',
+      chores: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#4ade80" stroke-width="2"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>'
     };
-    return icons[id] || '📦';
+    return icons[id] || '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FF8C00" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>';
   },
 
   /**
@@ -776,16 +869,16 @@ const RecommendPage = {
   _bundleUpgradePaths: {
     lighting: [
       { name: '灯光基础包', products: ['light_bulb', 'switch_wall'] },
-      { name: '灯光氛围包', products: ['ceiling_light', 'switch_wall'] },
-      { name: '灯光氛围包', products: ['downlight', 'light_strip', 'switch_wall'] }
+      { name: '灯光包', products: ['ceiling_light', 'switch_wall'] },
+      { name: '灯光包', products: ['downlight', 'light_strip', 'switch_wall'] }
     ],
     security: [
       { name: '安防基础包', products: ['sensor_door'] },
-      { name: '安防安心包', products: ['lock', 'camera', 'sensor_door'] }
+      { name: '安防包', products: ['lock', 'camera', 'sensor_door'] }
     ],
     curtain: [
-      { name: '窗帘基础包', products: ['curtain_motor'] },
-      { name: '窗帘升级包', products: ['curtain_motor', 'smart_panel'] }
+      { name: '窗帘包', products: ['curtain_motor'] },
+      { name: '窗帘包', products: ['curtain_motor', 'smart_panel'] }
     ],
     climate: [
       { name: '环境基础包', products: ['ac_controller'] },
@@ -812,6 +905,11 @@ const RecommendPage = {
     const el = document.getElementById(`bundle-${id}`);
     if (!el) return;
     el.classList.toggle('expanded');
+    // 清除内联样式，让 CSS class 完全控制
+    const body = el.querySelector('.scene-package-body');
+    const toggle = el.querySelector('.scene-package-toggle');
+    if (body) body.style.display = '';
+    if (toggle) toggle.style.transform = '';
   },
 
   // 点击品类 → 显示该品类下可选的具体产品
@@ -978,7 +1076,7 @@ const RecommendPage = {
   _buildShareText() {
     const userAnswers = store.getQuizResult() || {};
     const ownedMap = store.getOwnedProducts();
-    const platformName = userAnswers.platform === 'apple' ? '苹果HomeKit' : userAnswers.platform === 'huawei' ? '华为HiLink' : '米家';
+    const platformName = userAnswers.platform === 'apple' ? '苹果HomeKit' : userAnswers.platform === 'huawei' ? '华为鸿蒙智联' : '米家';
     const houseTypeText = userAnswers.houseType === 'new' ? '毛坯装修' : userAnswers.houseType === 'renovate' ? '改造' : '租房';
     const roomText = userAnswers.rooms ? `${userAnswers.rooms.bedrooms || 3}室${userAnswers.rooms.livingRooms || 1}厅` : '';
 
@@ -1164,5 +1262,10 @@ const RecommendPage = {
         </div>
       </div>
     `;
+  },
+
+  openJd(url) {
+    if (!url) { App.showToast('暂无购买链接'); return; }
+    window.open(url, '_blank');
   }
 };

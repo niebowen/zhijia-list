@@ -7,7 +7,7 @@
 
   // Tab routes configuration
   const TAB_ROUTES = ['quiz', 'shop', 'recommend', 'square', 'profile'];
-  const SUB_ROUTES = ['product-detail', 'compare', 'scene', 'favorites', 'cart', 'owned-products'];
+  const SUB_ROUTES = ['product-detail', 'compare', 'scene', 'favorites', 'cart', 'owned-products', 'floorplan'];
 
   // Tab SVG icons
   const TAB_ICONS = {
@@ -21,7 +21,7 @@
   const TAB_LABELS = {
     quiz: '测评',
     shop: '商城',
-    recommend: '场景',
+    recommend: '方案',
     square: '广场',
     profile: '我的'
   };
@@ -36,19 +36,31 @@
     const cartCount = store.getCartCount();
 
     tabBar.innerHTML = TAB_ROUTES.map(route => {
-      const onclick = route === 'recommend'
-        ? `onclick="store.isQuizCompleted() ? router.navigate('recommend') : router.navigate('quiz')"`
-        : `onclick="router.navigate('${route}')"`;
       const cartBadge = route === 'shop' && cartCount > 0
         ? `<span class="tab-cart-badge">${cartCount}</span>`
         : '';
+      const isMain = route === 'recommend';
+      const itemClass = isMain ? 'tab-item tab-item-main' : 'tab-item';
+      const indicator = isMain ? '' : '<span class="tab-indicator"></span>';
       return `
-      <div class="tab-item" data-route="${route}" ${onclick}>
+      <div class="${itemClass}" data-route="${route}">
         <span class="tab-icon-wrap">${TAB_ICONS[route]}${cartBadge}</span>
         <span>${TAB_LABELS[route]}</span>
-        <span class="tab-indicator"></span>
+        ${indicator}
       </div>
     `}).join('');
+
+    // Bind click events via JS to avoid inline onclick scope issues
+    tabBar.querySelectorAll('.tab-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const route = item.dataset.route;
+        if (route === 'recommend') {
+          router.navigate(store.isQuizCompleted() ? 'recommend' : 'quiz');
+        } else {
+          router.navigate(route);
+        }
+      });
+    });
   }
 
   /**
@@ -73,7 +85,8 @@
           'scene': '场景体验',
           'favorites': '我的收藏',
           'cart': '购物车',
-          'owned-products': '我家已有产品'
+          'owned-products': '我家已有产品',
+          'floorplan': '户型编辑器'
         };
         subHeader.innerHTML = `
           <button class="back-btn" onclick="history.back()">
@@ -127,7 +140,17 @@
         SquarePage.render();
         break;
       case 'profile':
-        ProfilePage.render();
+        if (typeof ProfilePage === 'undefined') {
+          const s = document.createElement('script');
+          s.src = 'js/pages/profile-page.js?t=' + Date.now();
+          s.onload = () => { if (typeof ProfilePage !== 'undefined') ProfilePage.render(); };
+          s.onerror = () => {
+            document.getElementById('page-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">页面加载失败，请刷新重试</div>';
+          };
+          document.head.appendChild(s);
+        } else {
+          ProfilePage.render();
+        }
         break;
       case 'favorites':
         FavoritesPage.render();
@@ -137,6 +160,9 @@
         break;
       case 'owned-products':
         ProfilePage.renderOwnedProducts();
+        break;
+      case 'floorplan':
+        FloorplanPage.render();
         break;
       default:
         router.navigate('quiz');
@@ -197,7 +223,7 @@
     initTabBar();
 
     // Register routes
-    const routes = ['quiz', 'recommend', 'shop', 'product-detail', 'compare', 'scene', 'square', 'profile', 'favorites', 'cart', 'owned-products'];
+    const routes = ['quiz', 'recommend', 'shop', 'product-detail', 'compare', 'scene', 'square', 'profile', 'favorites', 'cart', 'owned-products', 'floorplan'];
     routes.forEach(route => {
       router.register(route, (params) => {
         renderPage(route, params);

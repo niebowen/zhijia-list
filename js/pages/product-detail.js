@@ -37,9 +37,17 @@ const ProductDetailPage = {
 
         <!-- 价格和评分 -->
         <div class="detail-price-row">
-          <span class="detail-price">${product.priceLabel}</span>
+          <span class="detail-price">${product.coupon && product.couponPrice < product.price ? '¥' + product.couponPrice : product.priceLabel}</span>
+          ${product.coupon && product.couponPrice < product.price ? `<span style="text-decoration:line-through;color:var(--text-muted);font-size:14px;margin-left:6px;">${product.priceLabel}</span>` : ''}
           <span class="detail-rating">${'★'.repeat(Math.floor(product.rating))} ${product.rating}分 | ${product.sales > 10000 ? (product.sales / 10000).toFixed(1) + '万' : product.sales}人付款</span>
         </div>
+        ${product.coupon ? `
+        <div style="margin:4px 0 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span style="background:linear-gradient(135deg,#FF8C00,#FF4500);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">券</span>
+          <span style="color:var(--primary);font-size:13px;font-weight:500;">${product.coupon}</span>
+          ${product.commissionRate ? `<span style="color:var(--text-muted);font-size:11px;">佣金${product.commissionRate}</span>` : ''}
+        </div>
+        ` : ''}
 
         <!-- 标签 -->
         <div class="detail-tags">
@@ -150,6 +158,24 @@ const ProductDetailPage = {
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
+        ${product.promotionUrl ? `
+        <div style="margin-top:10px;padding:12px;background:linear-gradient(135deg,rgba(255,140,0,0.08),rgba(255,69,0,0.04));border:1px dashed rgba(255,140,0,0.3);border-radius:10px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">正品保障 · 极速发货</span>
+          </div>
+          ${product.coupon ? `<div style="font-size:12px;color:var(--primary);margin-bottom:8px;"><span style="background:var(--primary);color:#000;padding:1px 6px;border-radius:3px;font-size:10px;margin-right:4px;">券</span>${product.coupon}，到手价 <strong style="font-size:14px;">¥${product.couponPrice}</strong></div>` : ''}
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" style="flex:1;font-size:13px;padding:8px;" onclick="ProductDetailPage.openJd('${product.promotionUrl}')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              去购买
+            </button>
+            <button class="btn btn-outline" style="font-size:13px;padding:8px 10px;" onclick="ProductDetailPage.copyJdLink('${product.promotionUrl}', '${product.name}')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+        ` : ''}
       </div>
     `;
   },
@@ -261,5 +287,36 @@ const ProductDetailPage = {
     // Map similar categories
     const catMap = { outlet: 'plug', speaker: 'gateway' };
     return diagrams[category] || diagrams[catMap[category]] || '';
+  },
+
+  openJd(url) {
+    if (!url) {
+      App.showToast('暂无购买链接');
+      return;
+    }
+    window.open(url, '_blank');
+  },
+
+  copyJdLink(url, name) {
+    if (!url) {
+      App.showToast('暂无购买链接');
+      return;
+    }
+    var text = name + ' 购买链接：' + url;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        App.showToast('链接已复制到剪贴板');
+      }).catch(function() {
+        App.showToast('复制失败，请手动复制');
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      App.showToast('链接已复制到剪贴板');
+    }
   }
 };

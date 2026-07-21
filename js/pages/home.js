@@ -12,7 +12,7 @@ const HomePage = {
           <div class="hero-content">
             <h1 class="brand-name">智家清单</h1>
             <p class="brand-slogan">6道题，找到你的智能家居方案</p>
-            <p class="brand-desc">拒绝选择困难，告别踩坑浪费。<br>基于真实京东产品，科学推荐你的智能家居方案。</p>
+            <p class="brand-desc">拒绝选择困难，告别踩坑浪费。<br>基于真实产品数据，科学推荐你的智能家居方案。</p>
             <button class="btn btn-primary btn-lg" onclick="router.navigate('quiz')">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               开始智能测评
@@ -77,15 +77,15 @@ const HomePage = {
           </div>
         </section>
 
-        <!-- 京东背书 -->
+        <!-- 品质背书 -->
         <section class="trust-section">
           <div class="trust-banner">
             <div class="trust-logo">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
             <div class="trust-text">
-              <h3>基于京东真实在售产品</h3>
-              <p>所有推荐产品均为京东在售真实商品，点击即可跳转购买</p>
+              <h3>基于真实在售产品</h3>
+              <p>所有推荐产品均为在售真实商品，点击即可跳转购买</p>
             </div>
           </div>
         </section>

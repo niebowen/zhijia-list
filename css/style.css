@@ -180,6 +180,12 @@ img {
   padding: 4px 0;
 }
 
+/* 商城和广场稍微往外靠，给中间场景按钮让位 */
+.tab-item[data-route="shop"],
+.tab-item[data-route="square"] {
+  margin: 0 4px;
+}
+
 .tab-item svg {
   width: 24px;
   height: 24px;
@@ -196,6 +202,51 @@ img {
 .tab-item.active svg {
   stroke: var(--primary);
   stroke-width: 2;
+}
+
+/* Main tab (方案) - 黑色圆圈高亮，三分之二露出 */
+.tab-item-main {
+  flex: 0 0 70px;
+  width: 70px;
+  height: 70px;
+  margin-top: -24px;
+  margin-bottom: -20px;
+  background: var(--bg-card);
+  border: 2px solid #000;
+  border-radius: 50%;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  align-self: center;
+}
+
+/* 内容整体向上微调，与其他 Tab 对齐 */
+.tab-item-main .tab-icon-wrap {
+  transform: translateY(-7px);
+}
+.tab-item-main > span:nth-child(2) {
+  transform: translateY(-2px);
+}
+
+.tab-item-main .tab-icon-wrap {
+  margin: 0;
+}
+
+.tab-item-main svg {
+  width: 22px;
+  height: 22px;
+}
+
+.tab-item-main > span:nth-child(2) {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.tab-item-main.active {
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 /* Buttons */
